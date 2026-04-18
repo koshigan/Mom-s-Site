@@ -29,16 +29,29 @@ export default function AdminLogin() {
     try {
       const res = await api.post('/auth/login', form);
 
-      // ✅ IMPORTANT FIX (no JWT yet)
+      console.log("LOGIN RESPONSE:", res.data);
+
+      // ✅ only proceed if backend returns success
+      if (!res.data || !res.data.admin) {
+        throw new Error("Invalid response from server");
+      }
+
+      // ✅ TEMP TOKEN (since no JWT)
       localStorage.setItem('adminToken', 'loggedin');
 
       localStorage.setItem('adminUser', JSON.stringify(res.data.admin));
 
-      // ✅ Redirect
+      // ✅ redirect AFTER success
       navigate('/admin/dashboard');
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      console.log("LOGIN ERROR:", err);
+
+      setError(
+        err.response?.data?.message ||
+        err.message ||
+        'Login failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
