@@ -1,5 +1,5 @@
-// Load env only in local development
-if (process.env.NODE_ENV !== 'production') {
+// ✅ Load .env ONLY for local development
+if (!process.env.RAILWAY_ENVIRONMENT) {
   require('dotenv').config();
 }
 
@@ -9,9 +9,9 @@ console.log("DB_NAME:", process.env.DB_NAME);
 
 const path = require('path');
 
-// ✅ PRIORITY 1: Railway / MySQL (Production)
-if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
-  console.log("👉 Using MySQL Database");
+// ✅ PRIORITY 1: Railway MySQL (force this in Railway)
+if (process.env.RAILWAY_ENVIRONMENT) {
+  console.log("👉 Running on Railway → Using MySQL");
 
   const mysql = require('mysql2/promise');
 
@@ -29,34 +29,27 @@ if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
   };
 }
 
-// ✅ PRIORITY 2: PostgreSQL (ONLY if explicitly needed)
-else if (process.env.DATABASE_URL) {
-  console.log("👉 Using PostgreSQL Database");
+// ✅ PRIORITY 2: Local MySQL (optional)
+else if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
+  console.log("👉 Using Local MySQL");
 
-  const { Client } = require('pg');
+  const mysql = require('mysql2/promise');
 
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production'
-      ? { rejectUnauthorized: false }
-      : false,
+  const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
   });
 
-  client.connect();
-
   module.exports = {
-    query: (sql, params = []) => {
-      return new Promise((resolve, reject) => {
-        client.query(sql, params, (err, result) => {
-          if (err) reject(err);
-          else resolve([result.rows]);
-        });
-      });
-    }
+    query: (sql, params = []) => pool.query(sql, params),
   };
 }
 
-// ✅ PRIORITY 3: SQLite (Local fallback)
+// ✅ PRIORITY 3: SQLite fallback
 else {
   console.log("👉 Using SQLite Database");
 
