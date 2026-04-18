@@ -1,38 +1,18 @@
+// Load env only in local development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 console.log("DB_HOST:", process.env.DB_HOST);
 console.log("DB_USER:", process.env.DB_USER);
 console.log("DB_NAME:", process.env.DB_NAME);
-require('./loadEnv');
 
 const path = require('path');
 
-// Production database (PostgreSQL)
-if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL) {
-  const { Client } = require('pg');
+// ✅ PRIORITY 1: Railway / MySQL (Production)
+if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
+  console.log("👉 Using MySQL Database");
 
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  });
-
-  client.connect();
-
-  const promiseDb = {
-    query: (sql, params = []) => {
-      return new Promise((resolve, reject) => {
-        client.query(sql, params, (err, result) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve([result.rows]); // Mimic mysql2 format
-          }
-        });
-      });
-    }
-  };
-
-  module.exports = promiseDb;
-} else if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
-  // Local MySQL database when explicit credentials are provided.
   const mysql = require('mysql2/promise');
 
   const pool = mysql.createPool({
@@ -47,8 +27,39 @@ if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL) {
   module.exports = {
     query: (sql, params = []) => pool.query(sql, params),
   };
-} else {
-  // Development database (SQLite)
+}
+
+// ✅ PRIORITY 2: PostgreSQL (ONLY if explicitly needed)
+else if (process.env.DATABASE_URL) {
+  console.log("👉 Using PostgreSQL Database");
+
+  const { Client } = require('pg');
+
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
+  });
+
+  client.connect();
+
+  module.exports = {
+    query: (sql, params = []) => {
+      return new Promise((resolve, reject) => {
+        client.query(sql, params, (err, result) => {
+          if (err) reject(err);
+          else resolve([result.rows]);
+        });
+      });
+    }
+  };
+}
+
+// ✅ PRIORITY 3: SQLite (Local fallback)
+else {
+  console.log("👉 Using SQLite Database");
+
   const sqlite3 = require('sqlite3').verbose();
 
   const dbPath = path.join(__dirname, 'rsk_tailoring.db');
@@ -61,30 +72,23 @@ if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL) {
     }
   });
 
-  const promiseDb = {
+  module.exports = {
     query: (sql, params = []) => {
       return new Promise((resolve, reject) => {
         const sqlUpper = sql.trim().toUpperCase();
+
         if (sqlUpper.startsWith('SELECT') || sqlUpper.startsWith('PRAGMA')) {
           db.all(sql, params, (err, rows) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve([rows]); // Mimic mysql2 format
-            }
+            if (err) reject(err);
+            else resolve([rows]);
           });
         } else {
-          db.run(sql, params, function(err) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve([{ insertId: this.lastID, affectedRows: this.changes }]); // Mimic mysql2 format
-            }
+          db.run(sql, params, function (err) {
+            if (err) reject(err);
+            else resolve([{ insertId: this.lastID, affectedRows: this.changes }]);
           });
         }
       });
     }
   };
-
-  module.exports = promiseDb;
 }
