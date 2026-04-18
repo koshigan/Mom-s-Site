@@ -1,3 +1,8 @@
+console.log("DB_HOST:", process.env.DB_HOST);
+console.log("DB_USER:", process.env.DB_USER);
+console.log("DB_NAME:", process.env.DB_NAME);
+require('./loadEnv');
+
 const path = require('path');
 
 // Production database (PostgreSQL)
@@ -26,6 +31,22 @@ if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL) {
   };
 
   module.exports = promiseDb;
+} else if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
+  // Local MySQL database when explicit credentials are provided.
+  const mysql = require('mysql2/promise');
+
+  const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+  });
+
+  module.exports = {
+    query: (sql, params = []) => pool.query(sql, params),
+  };
 } else {
   // Development database (SQLite)
   const sqlite3 = require('sqlite3').verbose();
