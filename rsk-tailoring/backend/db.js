@@ -85,3 +85,11 @@ else {
     }
   };
 }
+pool.getConnection()
+  .then(conn => {
+    console.log("✅ Connected to MySQL");
+    conn.release();
+  })
+  .catch(err => {
+    console.error("❌ MySQL connection failed:", err);
+  });
