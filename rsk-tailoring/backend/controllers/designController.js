@@ -1,14 +1,19 @@
-const db = require('../db');
+const db = require('./db'); // adjust path if needed
 
-const getAllDesigns = async (req, res) => {
+app.get('/api/designs', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM designs ORDER BY created_at DESC');
+    console.log("👉 Fetching designs from DB");
+
+    const [rows] = await db.query("SELECT * FROM designs"); // ✅ correct
+
+    console.log("✅ Data fetched:", rows.length);
+
     res.json(rows);
   } catch (err) {
-  console.error("❌ FULL DB ERROR:", err); // 🔥 add this
-  res.status(500).json({ message: "Failed to fetch designs" });
-}
-};
+    console.error("❌ ERROR FETCHING DESIGNS:", err); // 🔥 IMPORTANT
+    res.status(500).json({ message: "Failed to fetch designs" });
+  }
+});
 
 const addDesign = async (req, res) => {
   try {
