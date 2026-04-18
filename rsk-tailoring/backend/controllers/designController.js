@@ -5,9 +5,9 @@ const getAllDesigns = async (req, res) => {
     const [rows] = await db.query('SELECT * FROM designs ORDER BY created_at DESC');
     res.json(rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to fetch designs.' });
-  }
+  console.error("❌ FULL DB ERROR:", err); // 🔥 add this
+  res.status(500).json({ message: "Failed to fetch designs" });
+}
 };
 
 const addDesign = async (req, res) => {
