@@ -1,4 +1,4 @@
-const db = require('./db'); // adjust path if needed
+const db = require('../db'); // adjust path if needed
 
 app.get('/api/designs', async (req, res) => {
   try {
