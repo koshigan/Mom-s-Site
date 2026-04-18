@@ -1,20 +1,22 @@
-const db = require('../db'); // adjust path if needed
+const db = require('../db');
 
-app.get('/api/designs', async (req, res) => {
+// ✅ GET ALL DESIGNS
+const getAllDesigns = async (req, res) => {
   try {
     console.log("👉 Fetching designs from DB");
 
-    const [rows] = await db.query("SELECT * FROM designs"); // ✅ correct
+    const [rows] = await db.query("SELECT * FROM designs");
 
     console.log("✅ Data fetched:", rows.length);
 
     res.json(rows);
   } catch (err) {
-    console.error("❌ ERROR FETCHING DESIGNS:", err); // 🔥 IMPORTANT
+    console.error("❌ ERROR FETCHING DESIGNS:", err);
     res.status(500).json({ message: "Failed to fetch designs" });
   }
-});
+};
 
+// ✅ ADD DESIGN
 const addDesign = async (req, res) => {
   try {
     const { design_name, price } = req.body;
@@ -25,7 +27,9 @@ const addDesign = async (req, res) => {
     }
 
     if (!design_name || !price || !image_url) {
-      return res.status(400).json({ message: 'Design name, image, and price are required.' });
+      return res.status(400).json({
+        message: 'Design name, image, and price are required.'
+      });
     }
 
     const [result] = await db.query(
@@ -33,14 +37,19 @@ const addDesign = async (req, res) => {
       [design_name, image_url, parseFloat(price)]
     );
 
-    const [newDesign] = await db.query('SELECT * FROM designs WHERE id = ?', [result.insertId]);
+    const [newDesign] = await db.query(
+      'SELECT * FROM designs WHERE id = ?',
+      [result.insertId]
+    );
+
     res.status(201).json(newDesign[0]);
   } catch (err) {
-    console.error(err);
+    console.error("❌ ERROR ADD DESIGN:", err);
     res.status(500).json({ message: 'Failed to add design.' });
   }
 };
 
+// ✅ UPDATE DESIGN
 const updateDesign = async (req, res) => {
   try {
     const { id } = req.params;
@@ -51,7 +60,11 @@ const updateDesign = async (req, res) => {
       image_url = `/uploads/${req.file.filename}`;
     }
 
-    const [existing] = await db.query('SELECT * FROM designs WHERE id = ?', [id]);
+    const [existing] = await db.query(
+      'SELECT * FROM designs WHERE id = ?',
+      [id]
+    );
+
     if (existing.length === 0) {
       return res.status(404).json({ message: 'Design not found.' });
     }
@@ -65,28 +78,44 @@ const updateDesign = async (req, res) => {
       [updatedName, updatedImage, parseFloat(updatedPrice), id]
     );
 
-    const [updated] = await db.query('SELECT * FROM designs WHERE id = ?', [id]);
+    const [updated] = await db.query(
+      'SELECT * FROM designs WHERE id = ?',
+      [id]
+    );
+
     res.json(updated[0]);
   } catch (err) {
-    console.error(err);
+    console.error("❌ ERROR UPDATE:", err);
     res.status(500).json({ message: 'Failed to update design.' });
   }
 };
 
+// ✅ DELETE DESIGN
 const deleteDesign = async (req, res) => {
   try {
     const { id } = req.params;
-    const [existing] = await db.query('SELECT * FROM designs WHERE id = ?', [id]);
+
+    const [existing] = await db.query(
+      'SELECT * FROM designs WHERE id = ?',
+      [id]
+    );
+
     if (existing.length === 0) {
       return res.status(404).json({ message: 'Design not found.' });
     }
 
     await db.query('DELETE FROM designs WHERE id = ?', [id]);
+
     res.json({ message: 'Design deleted successfully.' });
   } catch (err) {
-    console.error(err);
+    console.error("❌ ERROR DELETE:", err);
     res.status(500).json({ message: 'Failed to delete design.' });
   }
 };
 
-module.exports = { getAllDesigns, addDesign, updateDesign, deleteDesign };
+module.exports = {
+  getAllDesigns,
+  addDesign,
+  updateDesign,
+  deleteDesign
+};
