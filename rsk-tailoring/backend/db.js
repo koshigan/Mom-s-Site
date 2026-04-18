@@ -9,7 +9,9 @@ console.log("DB_NAME:", process.env.DB_NAME);
 
 const path = require('path');
 
-// ✅ PRIORITY 1: Railway MySQL (force this in Railway)
+// ===============================
+// ✅ PRIORITY 1: Railway MySQL
+// ===============================
 if (process.env.RAILWAY_ENVIRONMENT) {
   console.log("👉 Running on Railway → Using MySQL");
 
@@ -24,12 +26,24 @@ if (process.env.RAILWAY_ENVIRONMENT) {
     connectionLimit: 10,
   });
 
+  // ✅ TEST CONNECTION (INSIDE BLOCK)
+  pool.getConnection()
+    .then(conn => {
+      console.log("✅ Connected to MySQL");
+      conn.release();
+    })
+    .catch(err => {
+      console.error("❌ MySQL connection failed:", err);
+    });
+
   module.exports = {
     query: (sql, params = []) => pool.query(sql, params),
   };
 }
 
-// ✅ PRIORITY 2: Local MySQL (optional)
+// ===============================
+// ✅ PRIORITY 2: Local MySQL
+// ===============================
 else if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
   console.log("👉 Using Local MySQL");
 
@@ -49,7 +63,9 @@ else if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
   };
 }
 
+// ===============================
 // ✅ PRIORITY 3: SQLite fallback
+// ===============================
 else {
   console.log("👉 Using SQLite Database");
 
@@ -85,11 +101,3 @@ else {
     }
   };
 }
-pool.getConnection()
-  .then(conn => {
-    console.log("✅ Connected to MySQL");
-    conn.release();
-  })
-  .catch(err => {
-    console.error("❌ MySQL connection failed:", err);
-  });
