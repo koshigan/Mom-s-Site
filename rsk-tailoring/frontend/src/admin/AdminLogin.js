@@ -4,24 +4,39 @@ import api from "../utils/api";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: '', password: '' });
+
+  const [form, setForm] = useState({
+    username: '',
+    password: ''
+  });
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleChange = e => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
     setError('');
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
     try {
       const res = await api.post('/auth/login', form);
-      localStorage.setItem('adminToken', res.data.token);
+
+      // ✅ IMPORTANT FIX (no JWT yet)
+      localStorage.setItem('adminToken', 'loggedin');
+
       localStorage.setItem('adminUser', JSON.stringify(res.data.admin));
+
+      // ✅ Redirect
       navigate('/admin/dashboard');
+
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -50,6 +65,7 @@ export default function AdminLogin() {
               required
             />
           </div>
+
           <div className="form-group">
             <label>Password</label>
             <input
@@ -61,12 +77,13 @@ export default function AdminLogin() {
               required
             />
           </div>
-          <button type="submit" className="btn-submit" disabled={loading}>
-            {loading ? '🔐 Logging in...' : '🔑 Login to Admin Panel'}
+
+          <button type="submit" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
-        <p style={{ marginTop: '20px', color: '#999', fontSize: '0.8rem' }}>
+        <p style={{ marginTop: '20px', fontSize: '12px', color: '#777' }}>
           Default: admin / admin123
         </p>
       </div>
